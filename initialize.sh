@@ -1,0 +1,5 @@
+export AWS_PROFILE=
+export STACK_BASE_IDENTIFIER=
+export DOMAIN_NAME=
+export HOSTED_ZONE_ID=
+export CERTIFICATE_ID=
