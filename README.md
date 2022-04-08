@@ -15,7 +15,8 @@ The goal of this project is to provide a single cloudformation template that wil
 ## This assumes:
 * You have aws-cli installed
 * You have an active AWS account
-* You already have a domain name in a hosted zone
+* You have .aws/{config,credentials} properly set up
+* You already have a domain name in a Route 53 hosted zone
 
 ## Getting Started
 Note that you need the certificate created by `create-cert.sh` to be fully validated for `create-s3.sh` to work.  `create-cert.sh` will handle validation properly when the steps outlined in the [https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-certificatemanager-certificate.html](AWS CertificateManager Cloudformation Docs) are true for your account.
