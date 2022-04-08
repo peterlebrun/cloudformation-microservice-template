@@ -18,7 +18,7 @@ The goal of this project is to provide a single cloudformation template that wil
 * You already have a domain name in a hosted zone
 
 ## Getting Started
-Note that you need the certificate to be fully provisioned/validated for the create-s3 step to work.  `create-cert.sh` will handle validation properly when the steps outlined in the [https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-certificatemanager-certificate.html](AWS CertificateManager Cloudformation Docs) are true for your account.
+Note that you need the certificate created by `create-cert.sh` to be fully validated for `create-s3.sh` to work.  `create-cert.sh` will handle validation properly when the steps outlined in the [https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-certificatemanager-certificate.html](AWS CertificateManager Cloudformation Docs) are true for your account.
 
 1. Fill in the relevant parameters in `initialize.sh`.
 2. Run `./create-cert.sh`
