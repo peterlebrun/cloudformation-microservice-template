@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Set up private docker registry and user
+
+Resources:
+  ECR:
+    Type: AWS::ECR::Repository
+  ECRIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: AbleToReadWriteECR
+          PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+           - Effect: Allow
+             Action:
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:CompleteLayerUpload
+              - ecr:GetDownloadUrlForLayer
+              - ecr:InitiateLayerUpload
+              - ecr:PutImage
+              - ecr:UploadLayerPart
+             Resource:
+              - !GetAtt ECR.Arn
+           - Effect: Deny
+             Action:
+              - ecr:*
+             NotResource:
+             - !GetAtt ECR.Arn
