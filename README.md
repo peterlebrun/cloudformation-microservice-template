@@ -26,3 +26,4 @@ Note that you need the certificate created by `create-cert.sh` to be fully valid
 3. Get the certificate ID by either going to the AWS console and looking under certificate manager, or from the command line: `aws acm list-certificates`
 4. Enter the certificate ID in initialize.sh
 5. Run `./create-s3.sh`
+6. Run `./create-ecr.sh`
