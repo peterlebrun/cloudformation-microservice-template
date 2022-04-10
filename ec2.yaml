@@ -144,5 +144,5 @@ Resources:
         - Name: !Sub api.${DomainName}.
           Type: A
           AliasTarget:
-            HostedZoneId: WebAppALB.CanonicalHostedZoneId
+            HostedZoneId: WebAppALB.CanonicalHostedZoneID
             DNSName: !GetAtt WebAppALB.DNSName
