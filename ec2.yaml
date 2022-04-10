@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create an EC2 Instance behind an ALB"
+
+Parameters:
+  AmiID:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: "The ID of the AMI."
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+  AvailabilityZone:
+    Type: AWS::EC2::AvailabilityZone::Name
+  CertificateId:
+    Type: String
+  DomainName:
+    Type: String
+  HostedZoneId:
+    Type: String
+  KeyPairName:
+    Type: String
+    Description: "The name of an existing Amazon EC2 key pair in this region, for SSH access to EC2 Instances."
+  SubnetOne:
+    Type: String
+  SubnetTwo:
+    Type: String
+  VPCID:
+    Type: String
+
+Resources:
+  WebAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      ImageId: !Ref AmiID
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds:
+        - !Ref WebAppSecurityGroup
+    
+  WebAppSecurityGroup:
+   Type: AWS::EC2::SecurityGroup
+   Properties:
+    GroupName: webapp-security-group
+    GroupDescription: "Allow HTTP/HTTPS and SSH inbound/outbound traffic"
+    SecurityGroupIngress:
+     - IpProtocol: tcp
+       FromPort: 80
+       ToPort: 80
+       CidrIp: 0.0.0.0/0
+     - IpProtocol: tcp
+       FromPort: 22
+       ToPort: 22
+       CidrIp: 0.0.0.0/0
+
+  WebAppEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref WebAppInstance
+      Tags:
+       - Key: Name
+         Value: webapp-eip
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ELB Security Group"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443 
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  WebAppALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        - Key: 'deletion_protection.enabled'
+          Value: False
+      Name: 'web-app-alb'
+      Scheme: 'internet-facing'
+      Subnets:
+        - !Ref SubnetOne
+        - !Ref SubnetTwo
+      SecurityGroups:
+        - !GetAtt ALBSecurityGroup.GroupId
+
+  WebAppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 15
+      HealthyThresholdCount: 5
+      Matcher:
+        HttpCode: '200'
+      Name: EC2TargetGroup
+      Port: 80
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 20
+      Targets:
+        - Id: !Ref WebAppInstance
+          Port: 80
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref VPCID
+
+  ALBHTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: "forward"
+          TargetGroupArn: !Ref WebAppTargetGroup
+      Certificates:
+        - CertificateArn: !Sub arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/${CertificateId}
+      LoadBalancerArn: !Ref WebAppALB
+      Port: 443
+      Protocol: "HTTPS"
+
+  ALBHTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: "redirect"
+          RedirectConfig:
+            Protocol: "HTTPS"
+            Port: 443
+            Host: "#{host}"
+            Path: "/#{path}"
+            Query: "#{query}"
+            StatusCode: "HTTP_301"
+      LoadBalancerArn: !Ref WebAppALB
+      Port: 80
+      Protocol: "HTTP"
+  
+  DNS:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      RecordSets:
+        - Name: !Sub api.${DomainName}.
+          Type: A
+          AliasTarget:
+            HostedZoneId: WebAppALB.CanonicalHostedZoneId
+            DNSName: !GetAtt WebAppALB.DNSName
